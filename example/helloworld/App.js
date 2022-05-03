@@ -22,17 +22,11 @@ export const App = {
                 console.log('app onAdd', a, b)
             }
         }, [
-            // h(Foo, { count: 1 }),
-            // h(Emit, {
-            //     onAdd: (a, b) => {
-            //         console.log('app onadd', a, b)
-            //     },
-            //     onAddFoo: () => {
-            //         console.log('app onAddFoo')
-            //     }
-            // }),
-            h('div', {}, '0'),
-            h(Slot, {}, h('p', {}, '123'))
+            h('p', {}, 'parent'),
+            h(Slot, {}, {
+                header: ({ age }) => h('p', {}, 'header' + age),
+                footer: () => h('p', {}, 'footer')
+            })
         ])
     },
     setup() {

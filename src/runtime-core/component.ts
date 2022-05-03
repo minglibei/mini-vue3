@@ -11,6 +11,7 @@ export function createComponentInstance(vnode) {
         setupState: {},
         proxy: null,
         props: {},
+        slots: {},
         emit: () => {
         }
     }
