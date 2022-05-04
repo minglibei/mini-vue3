@@ -5,9 +5,9 @@ import { createAppAPI } from './createApp'
 
 export function createRenderer(options) {
     const {
-        createElement,
-        patchProps,
-        insert
+        createElement: hostCreateElement,
+        patchProps: hostPatchProps,
+        insert: hostInsert
     } = options
 
     function render(vnode, container) {
@@ -24,7 +24,7 @@ export function createRenderer(options) {
                 break;
             case Text:
                 processText(vnode, container)
-                break
+                break;
             default:
                 if (shapeFlag & ShapFlages.ELEMENT) {
                     processElement(vnode, container, parentComponent)
@@ -67,13 +67,13 @@ export function createRenderer(options) {
 
     function mountElement(vnode, container, parent) {
         // 创建元素
-        const el = (vnode.el = createElement(vnode.type))
+        const el = (vnode.el = hostCreateElement(vnode.type))
         // 增加props
         const { props, children } = vnode
         for (const key in props) {
             const val = props[key]
 
-            patchProps(el, key, val)
+            hostPatchProps(el, key, val)
         }
         // 处理children
         if (vnode.shapeFlag & ShapFlages.TEXT_CHILDREDN) {
@@ -83,7 +83,7 @@ export function createRenderer(options) {
         }
         // 将元素挂载到 container
 
-        insert(el, container)
+        hostInsert(el, container)
     }
 
     // 处理子内容
@@ -105,6 +105,6 @@ export function createRenderer(options) {
     }
 
     return {
-        creatApp: createAppAPI(render)
+        createApp: createAppAPI(render)
     }
 }

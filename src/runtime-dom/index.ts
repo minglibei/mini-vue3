@@ -30,6 +30,6 @@ const renderer: any = createRenderer({
     insert
 })
 export function createApp(...args) {
-    return renderer.creatApp(...args)
+    return renderer.createApp(...args)
 }
 export * from '../runtime-core'

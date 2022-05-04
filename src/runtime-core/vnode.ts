@@ -12,7 +12,7 @@ export function createVNode(type, props?, children?) {
     }
     if (typeof vnode.children === 'string') {
         vnode.shapeFlag = ShapFlages.TEXT_CHILDREDN | vnode.shapeFlag
-    } else {
+    } else if (Array.isArray(children)) {
         vnode.shapeFlag = ShapFlages.ARRAY_CHILDREN | vnode.shapeFlag
     }
 
