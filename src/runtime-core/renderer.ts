@@ -5,25 +5,25 @@ import { ShapFlages } from '../shared/shapeFlags'
 
 export function render(vnode, container) {
     // patch
-    patch(vnode, container)
+    patch(vnode, container, null)
 }
-function patch(vnode, container) {
+function patch(vnode, container, parentComponent) {
     // 判断vnode type
     // element -> mount Element
     const { type, shapeFlag } = vnode
     switch (type) {
         case Fragment:
-            processFragment(vnode, container)
+            processFragment(vnode, container, parentComponent)
             break;
         case Text:
             processText(vnode, container)
             break
         default:
             if (shapeFlag & ShapFlages.ELEMENT) {
-                processElement(vnode, container)
+                processElement(vnode, container, parentComponent)
             } else if (shapeFlag & ShapFlages.STATEFUL_COMPONENT) {
                 // component
-                processComponent(vnode, container)
+                processComponent(vnode, container, parentComponent)
             }
             break;
     }
@@ -35,30 +35,30 @@ function processText(vnode, container) {
     container.append(textElement)
 }
 
-function processFragment(vnode, container) {
-    mountChildren(vnode, container)
+function processFragment(vnode, container, parent) {
+    mountChildren(vnode, container, parent)
 }
 
 // 处理组件
-function processComponent(vnode, container) {
-    mountComponent(vnode, container)
+function processComponent(vnode, container, parent) {
+    mountComponent(vnode, container, parent)
 }
 
 // 处理元素
-function processElement(vnode, container) {
-    mountElement(vnode, container)
+function processElement(vnode, container, parent) {
+    mountElement(vnode, container, parent)
 }
 
 
-function mountComponent(vnode, container) {
-    const instance = createComponentInstance(vnode)
+function mountComponent(vnode, container, parent) {
+    const instance = createComponentInstance(vnode, parent)
     setupComponent(instance)
 
     setupRenderEffect(instance, vnode, container)
 }
 
 
-function mountElement(vnode, container) {
+function mountElement(vnode, container, parent) {
     // 创建元素
     const el = (vnode.el = document.createElement(vnode.type))
     // 增加props
@@ -77,16 +77,16 @@ function mountElement(vnode, container) {
     if (vnode.shapeFlag & ShapFlages.TEXT_CHILDREDN) {
         el.textContent = children
     } else if (vnode.shapeFlag & ShapFlages.ARRAY_CHILDREN) {
-        mountChildren(vnode, el)
+        mountChildren(vnode, el, parent)
     }
     // 将元素挂载到 container
     container.append(el)
 }
 
 // 处理子内容
-function mountChildren(vnode, container) {
+function mountChildren(vnode, container, parent) {
     vnode.children.forEach(c => {
-        patch(c, container)
+        patch(c, container, parent)
     })
 }
 
@@ -95,7 +95,7 @@ function setupRenderEffect(instance, vnode, container) {
     const subTree = instance.render.call(proxy) // 虚拟节点树
     // vnode -> patch
     // element -> mount
-    patch(subTree, container)
+    patch(subTree, container, instance)
 
     vnode.el = subTree.el
 
