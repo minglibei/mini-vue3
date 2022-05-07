@@ -3,6 +3,7 @@ import { Fragment, Text } from './vnode'
 import { ShapFlages } from '../shared/shapeFlags'
 import { createAppAPI } from './createApp'
 import { effect } from '../reactivity/effect'
+import { EMPTY_OBJ } from '../shared'
 
 export function createRenderer(options) {
     const {
@@ -65,6 +66,30 @@ export function createRenderer(options) {
         console.log('patchElement')
         console.log('n1', n1)
         console.log('n2', n2)
+        const oldProps = n1.props || EMPTY_OBJ
+        const newProps = n2.props || EMPTY_OBJ
+        const el = (n2.el = n1.el)
+        patchProps(el, oldProps, newProps)
+    }
+
+    function patchProps(el, oldProps, newProps) {
+        if (oldProps !== newProps) {
+            for (const key in newProps) {
+                const oldVal = oldProps[key]
+                const newVal = newProps[key]
+                if (oldVal !== newVal) {
+                    hostPatchProps(el, key, oldVal, newVal)
+                }
+            }
+            if (oldProps !== EMPTY_OBJ) {
+                for (const key in oldProps) {
+                    if (!(key in newProps)) {
+                        hostPatchProps(el, key, oldProps[key], null)
+                    }
+                }
+            }
+        }
+
     }
 
 
@@ -84,7 +109,7 @@ export function createRenderer(options) {
         for (const key in props) {
             const val = props[key]
 
-            hostPatchProps(el, key, val)
+            hostPatchProps(el, key, null, val)
         }
         // 处理children
         if (vnode.shapeFlag & ShapFlages.TEXT_CHILDREDN) {
