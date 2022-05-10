@@ -20,14 +20,29 @@ function patchProps(el, key, oldVal, newVal) {
 
 }
 
-function insert(el, parent) {
-    parent.append(el)
+function insert(child, parent, anchor) {
+    // 在指定位置插入
+    parent.insertBefore(child, anchor || null)
+}
+
+function remove(child) {
+    const parent = child.parentNode
+    if (parent) {
+        parent.removeChild(child)
+    }
+}
+
+function setElementText(el, text) {
+    el.textContent = text
+
 }
 
 const renderer: any = createRenderer({
     createElement,
     patchProps,
-    insert
+    insert,
+    remove,
+    setElementText
 })
 export function createApp(...args) {
     return renderer.createApp(...args)

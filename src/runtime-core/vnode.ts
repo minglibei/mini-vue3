@@ -7,6 +7,7 @@ export function createVNode(type, props?, children?) {
         type, // 传入组件
         props, // 组件属性
         children, // 子
+        key: props && props.key,
         shapeFlag: getShapeFlag(type), // 元素类型
         el: null
     }
