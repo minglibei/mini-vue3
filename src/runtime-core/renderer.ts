@@ -150,11 +150,56 @@ export function createRenderer(options) {
                 }
             }
         } else if (i > e2) {
+            // 老的比新的多 删除
             while (i <= e1) {
                 hostRemove(c1[i].el)
                 i++
             }
         } else {
+            // 处理中间不匹配的两个子串 寻找相同节点-节点移动  节点删除
+
+            let s1 = i
+            let s2 = i
+            const toBePatched = e2 - i + 1
+            let patched = 0
+
+            // 找出来的中间部门的新节点存入map
+            const keyToNewIndexMap = new Map()
+            for (let i = s2; i <= e2; i++) {
+                keyToNewIndexMap.set(c2[i].key, i)
+            }
+
+            // 遍历老节点
+            for (let i = s1; i <= e1; i++) {
+
+                let newIndex
+                const prevChild = c1[i]
+
+                if (patched >= toBePatched) {
+                    hostRemove(prevChild.el)
+                    continue
+                }
+
+
+                if (prevChild.key !== null) {
+                    newIndex = keyToNewIndexMap.get(prevChild.key)
+                } else {
+                    for (let j = s2; j <= e2; j++) {
+                        if (isSameVNodeType(c2[j], prevChild)) {
+                            newIndex = j
+                            break
+                        }
+                    }
+                }
+
+                if (newIndex !== undefined) {
+                    patch(prevChild, c2[newIndex], container, parentComponent, null)
+                    patched++
+                } else {
+                    // 新树中不存在老节点
+                    hostRemove(prevChild.el)
+                }
+            }
 
         }
 
