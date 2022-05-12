@@ -157,16 +157,26 @@ export function createRenderer(options) {
             }
         } else {
             // 处理中间不匹配的两个子串 寻找相同节点-节点移动  节点删除
-
             let s1 = i
             let s2 = i
+            // 优化： 当已处理节点数大于需要处理的节点数（老节点多余新节点），则把未比较的老节点全部删除
             const toBePatched = e2 - i + 1
             let patched = 0
 
-            // 找出来的中间部门的新节点存入map
+            // 优化： 处理老节点在新节点顺序时判断是否存在乱序 需要移动
+            let moved = false
+            let maxNewIndexSoFar = 0
+
+            // 找出来的中间部分的新节点存入map
             const keyToNewIndexMap = new Map()
             for (let i = s2; i <= e2; i++) {
                 keyToNewIndexMap.set(c2[i].key, i)
+            }
+
+            const newIndexToOldIndexMap = new Array(toBePatched)
+            for (let i = 0; i < toBePatched; i++) {
+                // 为每项初始化为0
+                newIndexToOldIndexMap[i] = 0
             }
 
             // 遍历老节点
@@ -181,6 +191,7 @@ export function createRenderer(options) {
                 }
 
 
+                // 找出老节点在新数组中的位置
                 if (prevChild.key !== null) {
                     newIndex = keyToNewIndexMap.get(prevChild.key)
                 } else {
@@ -193,12 +204,39 @@ export function createRenderer(options) {
                 }
 
                 if (newIndex !== undefined) {
+                    if (newIndex > maxNewIndexSoFar) {
+                        maxNewIndexSoFar = newIndex
+                    } else {
+                        moved = true
+                    }
+                    newIndexToOldIndexMap[newIndex - s2] = i + 1
+
+                    // 新树中存在老节点
                     patch(prevChild, c2[newIndex], container, parentComponent, null)
                     patched++
                 } else {
                     // 新树中不存在老节点
                     hostRemove(prevChild.el)
                 }
+            }
+
+            const increasingNewIndexSequence = moved ? getSequence(newIndexToOldIndexMap) : []
+            let j = increasingNewIndexSequence.length - 1
+            // 遍历新数组中的节点，处理新增或位置移动
+            for (let i = toBePatched; i >= 0; i--) {
+                const nextIndex = i + s2
+                const nextChild = c2[nextIndex]
+                const anchor = nextIndex + 1 < l2 ? c2[nextIndex + 1].el : null
+                if (newIndexToOldIndexMap[i] === 0) {
+                    patch(null, nextChild, container, parentComponent, anchor)
+                } else if (moved) {
+                    if (j < 0 || i !== increasingNewIndexSequence[j]) {
+                        hostInsert(nextChild.el, container, anchor)
+                    } else {
+                        j--
+                    }
+                }
+
             }
 
         }
@@ -297,7 +335,52 @@ export function createRenderer(options) {
 
     }
 
+
+
     return {
         createApp: createAppAPI(render)
     }
+}
+
+// 获取数组的最长递增子串 下标数组
+// [3,4,6,2,1,7] => [0,1,2,5]
+function getSequence(arr) {
+    const p = arr.slice();
+    const result = [0];
+    let i, j, u, v, c;
+    const len = arr.length;
+    for (i = 0; i < len; i++) {
+        const arrI = arr[i];
+        if (arrI !== 0) {
+            j = result[result.length - 1];
+            if (arr[j] < arrI) {
+                p[i] = j;
+                result.push(i);
+                continue;
+            }
+            u = 0;
+            v = result.length - 1;
+            while (u < v) {
+                c = (u + v) >> 1;
+                if (arr[result[c]] < arrI) {
+                    u = c + 1;
+                } else {
+                    v = c;
+                }
+            }
+            if (arrI < arr[result[u]]) {
+                if (u > 0) {
+                    p[i] = result[u - 1];
+                }
+                result[u] = i;
+            }
+        }
+    }
+    u = result.length;
+    v = result[u - 1];
+    while (u-- > 0) {
+        result[u] = v;
+        v = p[v];
+    }
+    return result;
 }
