@@ -4,6 +4,7 @@ import { ShapFlages } from '../shared/shapeFlags'
 import { createAppAPI } from './createApp'
 import { effect } from '../reactivity/effect'
 import { EMPTY_OBJ } from '../shared'
+import { shouldUpdateComponent } from './componentUpdateUtils'
 
 export function createRenderer(options) {
     const {
@@ -53,7 +54,23 @@ export function createRenderer(options) {
 
     // 处理组件
     function processComponent(n1, n2, container, parent, anchor) {
-        mountComponent(n2, container, parent, anchor)
+        if (!n1) {
+            mountComponent(n2, container, parent, anchor)
+        } else {
+            updateComponent(n1, n2)
+        }
+    }
+
+    function updateComponent(n1, n2) {
+
+        const instance = (n2.component = n1.component)
+        if (shouldUpdateComponent(n1, n2)) {
+            instance.next = n2
+            instance.update()
+        } else {
+            n2.el = n1.el
+            instance.vnode = n2
+        }
     }
 
     // 处理元素
@@ -273,7 +290,7 @@ export function createRenderer(options) {
 
 
     function mountComponent(vnode, container, parent, anchor) {
-        const instance = createComponentInstance(vnode, parent)
+        const instance = (vnode.component = createComponentInstance(vnode, parent))
         setupComponent(instance)
 
         setupRenderEffect(instance, vnode, container, anchor)
@@ -309,7 +326,7 @@ export function createRenderer(options) {
     }
 
     function setupRenderEffect(instance, initialVnode, container, anchor) {
-        effect(() => {
+        instance.update = effect(() => {
 
             if (!instance.isMounted) {
                 console.log('init')
@@ -324,6 +341,12 @@ export function createRenderer(options) {
                 instance.isMounted = true
             } else {
                 console.log('update')
+                // 获取更新后的节点
+                const { next, vnode } = instance
+                if (next) {
+                    next.el = vnode.el
+                    updateComponentPreRender(instance, next)
+                }
                 const { proxy } = instance
                 const subTree = instance.render.call(proxy)
                 const prevSubTree = instance.subTree
@@ -340,6 +363,12 @@ export function createRenderer(options) {
     return {
         createApp: createAppAPI(render)
     }
+}
+
+function updateComponentPreRender(instance, nextVNode) {
+    instance.next = null
+    instance.vnode = nextVNode
+    instance.props = nextVNode.props
 }
 
 // 获取数组的最长递增子串 下标数组
