@@ -8,33 +8,59 @@ const enum TagTypes {
 export function baseParse(content: any) {
     const context = createParserContext(content)
 
-    return createRoot(parserChildren(context))
+    return createRoot(parserChildren(context, []))
 }
 
-function parserChildren(context) {
+function parserChildren(context, ancestors) {
     const nodes: any = []
-    const s = context.source
-    let node
-    if (s.startsWith('{{')) {
-        node = parseInterpolation(context)
-    } else if (s[0] === '<') {
-        if (/[a-z]/i.test(s[1])) {
-            node = parseElement(context)
+    while (!isEnd(context, ancestors)) {
+        const s = context.source
+        let node
+        if (s.startsWith('{{')) {
+            node = parseInterpolation(context)
+        } else if (s[0] === '<') {
+            if (/[a-z]/i.test(s[1])) {
+                node = parseElement(context, ancestors)
+            }
         }
-    }
 
-    if (!node) {
-        node = parseText(context)
+        if (!node) {
+            node = parseText(context)
+        }
+        nodes.push(node)
     }
-    nodes.push(node)
     return nodes
 }
 
+function isEnd(context, ancestors) {
+    const s = context.source
+    if (s.startsWith('</')) {
+        for (let i = ancestors.length - 1; i >= 0; i--) {
+            const tag = ancestors[i].tag
+            if (s.slice(2, 2 + tag.length) === tag) {
+                return true
+            }
+        }
+    }
+    return !s
+
+}
+
 function parseText(context) {
+    const matchEndFlag = ['{{', '</']
+    const s = context.source
+    let endIndex = s.length
+
+    for (let i = 0; i < matchEndFlag.length; i++) {
+        const index = s.indexOf(matchEndFlag[i])
+        if (index !== -1 && index < endIndex) {
+            endIndex = index
+        }
+    }
     // 取值
     // 处理后字符串删除
-    const content = parseTextData(context, context.source.length)
-    advanceBy(context, content.length)
+    const content = parseTextData(context, endIndex)
+
     return {
         type: NodeTypes.TEXT,
         content
@@ -42,10 +68,16 @@ function parseText(context) {
 
 }
 
-function parseElement(context) {
-    const element = parseTag(context, TagTypes.Start)
-    parseTag(context, TagTypes.End)
-    console.log('context source:', context.source)
+function parseElement(context, ancestors) {
+    const element: any = parseTag(context, TagTypes.Start)
+    ancestors.push(element)
+    element.children = parserChildren(context, ancestors)
+    ancestors.pop()
+    if (context.source.slice(2, 2 + element.tag.length) === element.tag) {
+        parseTag(context, TagTypes.End)
+    } else {
+        throw new Error('缺少结束标签:' + element.tag)
+    }
     return element
 }
 
@@ -75,7 +107,7 @@ function parseInterpolation(context) {
     const rawContentLength = closeIndex - openDelimiter.length
     const rawContent = parseTextData(context, rawContentLength)
 
-    advanceBy(context, rawContentLength + closeDelimiter.length)
+    advanceBy(context, closeDelimiter.length)
     const content = rawContent.trim()
     return {
         type: NodeTypes.INTERPLOATION,
