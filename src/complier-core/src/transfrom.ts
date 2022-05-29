@@ -6,20 +6,28 @@ import { helperMapName, TO_DISPLAY_STRING } from "./runtimeHelpers"
 export function transform(root, options = {}) {
     const context = createTranformContext(root, options)
     traverseNode(root, context)
-    createCodegenNode(root)
+    createRootCodegen(root)
     root.helpers = [...context.helpers.keys()]
 }
 
-function createCodegenNode(root) {
-
-    root.codegenNode = root.children[0]
+function createRootCodegen(root) {
+    const child = root.children[0]
+    if (child.type === NodeTypes.ELEMENT) {
+        root.codegenNode = child.codegenNode
+    } else {
+        root.codegenNode = root.children[0]
+    }
 }
 
 function traverseNode(node, context) {
     const nodeTransforms = context.nodeTransforms
+    const exitFns: any = []
     for (let i = 0; i < nodeTransforms.length; i++) {
         const transformOption = nodeTransforms[i]
-        transformOption(node)
+        const onExit = transformOption(node, context)
+        if (onExit) {
+            exitFns.push(onExit)
+        }
     }
     switch (node.type) {
         case NodeTypes.INTERPLOATION:
@@ -31,6 +39,11 @@ function traverseNode(node, context) {
             break;
         default:
             break;
+    }
+
+    let i = exitFns.length
+    while (i--) {
+        exitFns[i]()
     }
 
 
