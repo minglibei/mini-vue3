@@ -1,3 +1,4 @@
+// 根据传入类型，解析生成ast树
 import { NodeTypes } from "./ast"
 
 const enum TagTypes {
@@ -130,7 +131,8 @@ function parseTextData(context, length) {
 
 function createRoot(children) {
     return {
-        children
+        children,
+        type: NodeTypes.ROOT
     }
 }
 
