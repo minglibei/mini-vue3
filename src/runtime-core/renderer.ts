@@ -332,7 +332,7 @@ export function createRenderer(options) {
             if (!instance.isMounted) {
                 console.log('init')
                 const { proxy } = instance
-                const subTree = (instance.subTree = instance.render.call(proxy))// 虚拟节点树
+                const subTree = (instance.subTree = instance.render.call(proxy, proxy))// 虚拟节点树
 
                 console.log(subTree)
 
@@ -349,7 +349,7 @@ export function createRenderer(options) {
                     updateComponentPreRender(instance, next)
                 }
                 const { proxy } = instance
-                const subTree = instance.render.call(proxy)
+                const subTree = instance.render.call(proxy, proxy)
                 const prevSubTree = instance.subTree
                 instance.subTree = subTree
                 patch(prevSubTree, subTree, container, instance, anchor)

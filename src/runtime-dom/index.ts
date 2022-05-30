@@ -1,5 +1,7 @@
 import { createRenderer } from '../runtime-core'
 
+export * from '../reactivity'
+
 function createElement(type) {
     return document.createElement(type)
 }
